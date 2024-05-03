@@ -276,6 +276,32 @@ std::tuple<std::vector<double>, std::vector<double>> SteeringOdometry::get_comma
     }
     return std::make_tuple(traction_commands, steering_commands);
   }
+  else if (config_type_ == SWERVE_CONFIG)
+  {
+    std::vector<double> traction_commands;
+    std::vector<double> steering_commands;
+    if (fabs(steer_pos_) < 1e-6)
+    {
+      traction_commands = {Ws, Ws};
+      steering_commands = {alpha, alpha};
+    }
+    else
+    {
+      double turning_radius = wheelbase_ / std::tan(steer_pos_);
+      double Wr = Ws * (turning_radius + wheel_track_ * 0.5) / turning_radius;
+      double Wl = Ws * (turning_radius - wheel_track_ * 0.5) / turning_radius;
+      traction_commands = {Wr, Wl};
+
+      double numerator = 2 * wheelbase_ * std::sin(alpha);
+      double denominator_first_member = 2 * wheelbase_ * std::cos(alpha);
+      double denominator_second_member = wheel_track_ * std::sin(alpha);
+
+      double alpha_r = std::atan2(numerator, denominator_first_member + denominator_second_member);
+      double alpha_l = std::atan2(numerator, denominator_first_member - denominator_second_member);
+      steering_commands = {alpha_r, alpha_l};
+    }
+    return std::make_tuple(traction_commands, steering_commands);
+  }
   else
   {
     throw std::runtime_error("Config not implemented");
